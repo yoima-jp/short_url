@@ -654,7 +654,7 @@ app.use((req, res) => {
 });
 
 // サーバー開始
-process.env.PORT || 3000(PORT, () => {
+process.env.PORT || 3001(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
 
