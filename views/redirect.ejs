@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' ? title : 'リダイレクト' %></title>
+    <% if (typeof description !== 'undefined' && description) { %>
+    <meta name="description" content="<%= description %>">
+    <% } %>
+    
+    <!-- Open Graph メタタグ -->
+    <meta property="og:title" content="<%= typeof title !== 'undefined' ? title : 'リダイレクト' %>">
+    <% if (typeof description !== 'undefined' && description) { %>
+    <meta property="og:description" content="<%= description %>">
+    <% } %>
+    <meta property="og:url" content="<%= typeof originalUrl !== 'undefined' ? originalUrl : '' %>">
+    <% if (typeof ogImageUrl !== 'undefined' && ogImageUrl) { %>
+    <meta property="og:image" content="<%= ogImageUrl %>">
+    <% } %>
+    <meta property="og:type" content="website">
+    
+    <!-- Twitter Card メタタグ -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<%= typeof title !== 'undefined' ? title : 'リダイレクト' %>">
+    <% if (typeof description !== 'undefined' && description) { %>
+    <meta name="twitter:description" content="<%= description %>">
+    <% } %>
+    <% if (typeof ogImageUrl !== 'undefined' && ogImageUrl) { %>
+    <meta name="twitter:image" content="<%= ogImageUrl %>">
+    <% } %>
+    
+    <!-- ファビコン -->
+    <% if (typeof faviconUrl !== 'undefined' && faviconUrl) { %>
+    <link rel="icon" href="<%= faviconUrl %>" type="image/x-icon">
+    <link rel="shortcut icon" href="<%= faviconUrl %>" type="image/x-icon">
+    <% } %>
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+        }
+        .loading-container {
+            text-align: center;
+            color: white;
+            max-width: 500px;
+            padding: 20px;
+        }
+        .site-preview {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .site-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .site-description {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .site-url {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            word-break: break-all;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .message {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+        .sub-message {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        .favicon {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            vertical-align: middle;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-container">
+        <div class="site-preview">
+            <div class="site-title">
+                <% if (typeof faviconUrl !== 'undefined' && faviconUrl) { %>
+                <img src="<%= faviconUrl %>" alt="favicon" class="favicon" onerror="this.style.display='none'">
+                <% } %>
+                <%= typeof title !== 'undefined' ? title : 'リダイレクト' %>
+            </div>
+            <% if (typeof description !== 'undefined' && description) { %>
+            <div class="site-description"><%= description %></div>
+            <% } %>
+            <div class="site-url"><%= typeof originalUrl !== 'undefined' ? originalUrl : '' %></div>
+        </div>
+        
+        <div class="spinner"></div>
+        <div class="message">リダイレクト準備中...</div>
+        <div class="sub-message">数秒後に自動的にリダイレクトします</div>
+    </div>
+    
+    <script>
+        // 詳細なクライアント側情報を収集
+        async function collectDetailedInfo() {
+            const data = {
+                // 基本情報
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown',
+                language: navigator.language || navigator.userLanguage || 'Unknown',
+                userAgent: navigator.userAgent,
+                referrer: document.referrer || '',
+                
+                // デバイス判定
+                device: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 
+                       /Tablet|iPad/i.test(navigator.userAgent) ? 'Tablet' : 'Desktop',
+                
+                // 画面情報
+                screenWidth: screen.width,
+                screenHeight: screen.height,
+                colorDepth: screen.colorDepth,
+                pixelDepth: screen.pixelDepth,
+                viewportWidth: window.innerWidth || document.documentElement.clientWidth,
+                viewportHeight: window.innerHeight || document.documentElement.clientHeight,
+                availableScreenWidth: screen.availWidth,
+                availableScreenHeight: screen.availHeight,
+                
+                // デバイス方向
+                orientation: screen.orientation ? screen.orientation.type : 
+                           (window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'),
+                
+                // ピクセル比
+                pixelRatio: window.devicePixelRatio || 1,
+                
+                // ブラウザ機能
+                touchSupport: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+                cookieEnabled: navigator.cookieEnabled,
+                javaEnabled: navigator.javaEnabled ? navigator.javaEnabled() : false,
+                onlineStatus: navigator.onLine,
+                
+                // プラットフォーム情報
+                platform: navigator.platform,
+                
+                // ハードウェア情報
+                cpuCores: navigator.hardwareConcurrency || 'Unknown',
+                memoryGb: navigator.deviceMemory || 'Unknown',
+                
+                // ネットワーク情報
+                connectionType: navigator.connection ? navigator.connection.effectiveType : 'Unknown',
+                connectionDownlink: navigator.connection ? navigator.connection.downlink : 'Unknown',
+                connectionRtt: navigator.connection ? navigator.connection.rtt : 'Unknown',
+                
+                // プライバシー設定
+                doNotTrack: navigator.doNotTrack || 'Unknown',
+                
+                // WebGL情報
+                webglVendor: 'Unknown',
+                webglRenderer: 'Unknown',
+                
+                // フィンガープリンティング
+                canvasFingerprint: 'Unknown',
+                audioFingerprint: 'Unknown',
+                
+                // プラグイン情報
+                pluginsList: Array.from(navigator.plugins).map(p => p.name).join(',') || 'None',
+                
+                // フォント情報（一部のみ検出可能）
+                fontsList: 'Unknown',
+                
+                // ストレージ機能
+                localStorageEnabled: false,
+                sessionStorageEnabled: false,
+                indexedDbEnabled: false,
+                
+                // WebRTC サポート
+                webrtcSupport: !!(window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection),
+                
+                // メディアデバイス数
+                mediaDevicesCount: 'Unknown'
+            };
+
+            // WebGL情報を取得
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        data.webglVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                        data.webglRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    }
+                }
+            } catch (e) {
+                // WebGL情報取得失敗
+            }
+
+            // Canvas フィンガープリンティング
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.textBaseline = 'top';
+                ctx.font = '14px Arial';
+                ctx.fillText('Canvas fingerprint test 🔍', 2, 2);
+                data.canvasFingerprint = canvas.toDataURL().slice(0, 100); // 先頭100文字のみ
+            } catch (e) {
+                // Canvas フィンガープリンティング失敗
+            }
+
+            // Audio フィンガープリンティング
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const analyser = audioContext.createAnalyser();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(analyser);
+                analyser.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 1000;
+                gainNode.gain.value = 0;
+                
+                const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(frequencyData);
+                
+                data.audioFingerprint = Array.from(frequencyData.slice(0, 10)).join(',');
+                audioContext.close();
+            } catch (e) {
+                // Audio フィンガープリンティング失敗
+            }
+
+            // ストレージ機能チェック
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                data.localStorageEnabled = true;
+            } catch (e) {
+                data.localStorageEnabled = false;
+            }
+
+            try {
+                sessionStorage.setItem('test', 'test');
+                sessionStorage.removeItem('test');
+                data.sessionStorageEnabled = true;
+            } catch (e) {
+                data.sessionStorageEnabled = false;
+            }
+
+            try {
+                const request = indexedDB.open('test');
+                data.indexedDbEnabled = true;
+            } catch (e) {
+                data.indexedDbEnabled = false;
+            }
+
+            // メディアデバイス数を取得
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    data.mediaDevicesCount = devices.length;
+                }
+            } catch (e) {
+                // メディアデバイス情報取得失敗
+            }
+
+            // フォント検出（基本的なもののみ）
+            try {
+                const testFonts = ['Arial', 'Times New Roman', 'Courier New', 'Helvetica', 'Georgia', 'Verdana'];
+                const availableFonts = [];
+                const testString = 'mmmmmmmmmmlli';
+                const testSize = '72px';
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                testFonts.forEach(font => {
+                    ctx.font = testSize + ' ' + font;
+                    const width = ctx.measureText(testString).width;
+                    if (width) availableFonts.push(font);
+                });
+                
+                data.fontsList = availableFonts.join(',') || 'None detected';
+            } catch (e) {
+                data.fontsList = 'Detection failed';
+            }
+
+            return data;
+        }
+
+        // 情報収集とログ送信
+        collectDetailedInfo().then(data => {
+            // ログをサーバーに送信
+            fetch('/log/<%= typeof code !== 'undefined' ? code : '' %>', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(data)
+            }).then(response => {
+                // ログ送信完了後にリダイレクト
+                setTimeout(() => {
+                    window.location.href = "<%= typeof originalUrl !== 'undefined' ? originalUrl : '' %>";
+                }, 1000); // 1秒待ってからリダイレクト
+            }).catch(error => {
+                console.error('ログ送信エラー:', error);
+                // エラーが発生してもリダイレクトは実行
+                setTimeout(() => {
+                    window.location.href = "<%= typeof originalUrl !== 'undefined' ? originalUrl : '' %>";
+                }, 2000);
+            });
+        }).catch(error => {
+            console.error('情報収集エラー:', error);
+            // 情報収集に失敗してもリダイレクトは実行
+            setTimeout(() => {
+                window.location.href = "<%= typeof originalUrl !== 'undefined' ? originalUrl : '' %>";
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

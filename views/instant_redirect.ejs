@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' ? title : 'リダイレクト' %></title>
+    <% if (typeof description !== 'undefined' && description) { %>
+    <meta name="description" content="<%= description %>">
+    <% } %>
+    
+    <!-- Open Graph メタタグ -->
+    <meta property="og:title" content="<%= typeof title !== 'undefined' ? title : 'リダイレクト' %>">
+    <% if (typeof description !== 'undefined' && description) { %>
+    <meta property="og:description" content="<%= description %>">
+    <% } %>
+    <meta property="og:url" content="<%= typeof originalUrl !== 'undefined' ? originalUrl : '' %>">
+    <% if (typeof ogImageUrl !== 'undefined' && ogImageUrl) { %>
+    <meta property="og:image" content="<%= ogImageUrl %>">
+    <% } %>
+    <meta property="og:type" content="website">
+    
+    <!-- Twitter Card メタタグ -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<%= typeof title !== 'undefined' ? title : 'リダイレクト' %>">
+    <% if (typeof description !== 'undefined' && description) { %>
+    <meta name="twitter:description" content="<%= description %>">
+    <% } %>
+    <% if (typeof ogImageUrl !== 'undefined' && ogImageUrl) { %>
+    <meta name="twitter:image" content="<%= ogImageUrl %>">
+    <% } %>
+    
+    <!-- ファビコン -->
+    <% if (typeof faviconUrl !== 'undefined' && faviconUrl) { %>
+    <link rel="icon" href="<%= faviconUrl %>" type="image/x-icon">
+    <link rel="shortcut icon" href="<%= faviconUrl %>" type="image/x-icon">
+    <% } %>
+    
+    <!-- 即座にリダイレクト -->
+    <meta http-equiv="refresh" content="0;url=<%= typeof originalUrl !== 'undefined' ? originalUrl : '' %>">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+        }
+        .redirect-message {
+            text-align: center;
+            color: white;
+            max-width: 400px;
+            padding: 20px;
+        }
+        .site-info {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .site-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .site-url {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            word-break: break-all;
+        }
+        .redirect-link {
+            color: white;
+            text-decoration: underline;
+        }
+        .favicon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-message">
+        <div class="site-info">
+            <div class="site-title">
+                <% if (typeof faviconUrl !== 'undefined' && faviconUrl) { %>
+                <img src="<%= faviconUrl %>" alt="favicon" class="favicon" onerror="this.style.display='none'">
+                <% } %>
+                <%= typeof title !== 'undefined' ? title : 'リダイレクト' %>
+            </div>
+            <div class="site-url"><%= typeof originalUrl !== 'undefined' ? originalUrl : '' %></div>
+        </div>
+        <p>リダイレクト中...</p>
+        <p><small>自動的にリダイレクトされない場合は<a href="<%= typeof originalUrl !== 'undefined' ? originalUrl : '' %>" class="redirect-link">こちら</a>をクリック</small></p>
+    </div>
+    
+    <script>
+        // User-Agent解析とログ記録のための情報収集（簡易版）
+        const logData = {
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown',
+            language: navigator.language || navigator.userLanguage || 'Unknown',
+            userAgent: navigator.userAgent,
+            referrer: document.referrer || '',
+            device: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 
+                   /Tablet|iPad/i.test(navigator.userAgent) ? 'Tablet' : 'Desktop',
+            screenWidth: screen.width,
+            screenHeight: screen.height,
+            viewportWidth: window.innerWidth || document.documentElement.clientWidth,
+            viewportHeight: window.innerHeight || document.documentElement.clientHeight
+        };
+
+        // ログをサーバーに送信（非同期）
+        fetch('/log/<%= typeof code !== 'undefined' ? code : '' %>', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify(logData)
+        }).catch(error => {
+            console.error('ログ送信エラー:', error);
+        });
+
+        // JavaScriptが無効な場合に備えて、バックアップのリダイレクト
+        setTimeout(() => {
+            window.location.href = "<%= typeof originalUrl !== 'undefined' ? originalUrl : '' %>";
+        }, 100);
+    </script>
+</body>
+</html>

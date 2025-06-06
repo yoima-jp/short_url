@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理ダッシュボード - <%= code %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .stat-label {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .table td {
+            vertical-align: middle;
+            border-color: #e9ecef;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+        }
+        .badge {
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 1rem 0;
+        }
+        .url-info {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .url-display {
+            background: rgba(255,255,255,0.2);
+            padding: 0.75rem;
+            border-radius: 10px;
+            font-family: monospace;
+            word-break: break-all;
+            margin-top: 0.5rem;
+        }
+        .device-icon, .browser-icon, .os-icon {
+            width: 20px;
+            text-align: center;
+        }
+        .timezone-badge, .language-badge {
+            font-size: 0.8rem;
+        }
+        .btn.active {
+            background-color: #667eea !important;
+            border-color: #667eea !important;
+            color: white !important;
+        }
+        .table-responsive {
+            max-height: 700px;
+            overflow-y: auto;
+        }
+        .table-cell-wide {
+            max-width: 300px;
+            word-break: break-all;
+            overflow-wrap: break-word;
+        }
+        .fingerprint-cell {
+            font-family: monospace;
+            font-size: 0.75rem;
+            max-width: 200px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <!-- ナビゲーション -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand text-white fw-bold" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                管理ダッシュボード
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text text-white">
+                    <i class="fas fa-link me-1"></i>
+                    <%= code %>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- URL情報 -->
+        <div class="url-info">
+            <h4 class="mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                短縮URL情報
+            </h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>短縮コード:</strong>
+                    <div class="url-display"><%= entry.code %></div>
+                </div>
+                <div class="col-md-6">
+                    <strong>作成日時:</strong>
+                    <div class="url-display"><%= new Date(entry.created_at).toLocaleString('ja-JP') %></div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <strong>リダイレクト先URL:</strong>
+                <div class="url-display"><%= entry.original_url %></div>
+            </div>
+        </div>
+
+        <!-- 統計情報 -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= stats.totalAccess %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-eye me-1"></i>
+                        総アクセス数
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= Object.keys(stats.browsers).length %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-globe me-1"></i>
+                        ブラウザ種類
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= Object.keys(stats.os).length %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-desktop me-1"></i>
+                        OS種類
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= Object.keys(stats.devices).length %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-mobile-alt me-1"></i>
+                        デバイス種類
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 追加統計情報 -->
+        <div class="row">
+            <div class="col-md-2">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= stats.touchDevices %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-hand-pointer me-1"></i>
+                        タッチデバイス
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= stats.webrtcSupport %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-video me-1"></i>
+                        WebRTC対応
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= Object.keys(stats.screenResolutions).length %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-tv me-1"></i>
+                        解像度種類
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= stats.averagePixelRatio %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-expand-alt me-1"></i>
+                        平均ピクセル比
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= Object.keys(stats.connectionTypes).length %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-wifi me-1"></i>
+                        接続タイプ種類
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card text-center">
+                    <div class="stat-number"><%= stats.storageSupport.localStorage %></div>
+                    <div class="stat-label">
+                        <i class="fas fa-database me-1"></i>
+                        localStorage対応
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 詳細アクセスログ一覧 -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    詳細アクセスログ一覧 (<%= logs.length %> 件)
+                </h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary active" onclick="toggleColumns('basic')">
+                        <i class="fas fa-eye me-1"></i>基本情報
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="toggleColumns('technical')">
+                        <i class="fas fa-cog me-1"></i>技術情報
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" onclick="toggleColumns('hardware')">
+                        <i class="fas fa-microchip me-1"></i>ハードウェア
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="toggleColumns('fingerprint')">
+                        <i class="fas fa-fingerprint me-1"></i>フィンガープリント
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleColumns('all')">
+                        <i class="fas fa-expand me-1"></i>全て表示
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <% if (logs.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0" id="logsTable">
+                            <thead>
+                                <tr>
+                                    <!-- 基本情報 -->
+                                    <th class="col-basic">日時</th>
+                                    <th class="col-basic">IP</th>
+                                    <th class="col-basic">ブラウザ</th>
+                                    <th class="col-basic">OS</th>
+                                    <th class="col-basic">デバイス</th>
+                                    <th class="col-basic">言語</th>
+                                    <th class="col-basic">リファラー</th>
+                                    
+                                    <!-- 技術情報 -->
+                                    <th class="col-technical d-none">画面解像度</th>
+                                    <th class="col-technical d-none">ビューポート</th>
+                                    <th class="col-technical d-none">ピクセル比</th>
+                                    <th class="col-technical d-none">タイムゾーン</th>
+                                    <th class="col-technical d-none">接続タイプ</th>
+                                    <th class="col-technical d-none">Cookie有効</th>
+                                    <th class="col-technical d-none">ユーザーエージェント</th>
+                                    
+                                    <!-- ハードウェア情報 -->
+                                    <th class="col-hardware d-none">CPUコア数</th>
+                                    <th class="col-hardware d-none">メモリ(GB)</th>
+                                    <th class="col-hardware d-none">タッチ対応</th>
+                                    <th class="col-hardware d-none">WebRTC</th>
+                                    <th class="col-hardware d-none">WebGL</th>
+                                    <th class="col-hardware d-none">localStorage</th>
+                                    <th class="col-hardware d-none">sessionStorage</th>
+                                    <th class="col-hardware d-none">IndexedDB</th>
+                                    <th class="col-hardware d-none">メディアデバイス</th>
+                                    
+                                    <!-- フィンガープリント -->
+                                    <th class="col-fingerprint d-none">Canvasフィンガープリント</th>
+                                    <th class="col-fingerprint d-none">Audioフィンガープリント</th>
+                                    <th class="col-fingerprint d-none">プラグインリスト</th>
+                                    <th class="col-fingerprint d-none">フォントリスト</th>
+                                    <th class="col-fingerprint d-none">WebGLベンダー</th>
+                                    <th class="col-fingerprint d-none">WebGLレンダラー</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% logs.forEach(function(log, index) { 
+                                    if (index < 50) { // 最初の50件に制限（表示項目が多いため）
+                                %>
+                                    <tr>
+                                        <!-- 基本情報 -->
+                                        <td class="col-basic">
+                                            <small><%= new Date(log.accessed_at).toLocaleString('ja-JP') %></small>
+                                        </td>
+                                        <td class="col-basic">
+                                            <span class="badge bg-secondary" style="font-size: 0.7rem;"><%= log.ip_address %></span>
+                                        </td>
+                                        <td class="col-basic">
+                                            <i class="<%= getBrowserIcon(log.browser) %> browser-icon me-1"></i>
+                                            <small><%= log.browser %></small>
+                                        </td>
+                                        <td class="col-basic">
+                                            <i class="<%= getOSIcon(log.os) %> os-icon me-1"></i>
+                                            <small><%= log.os %></small>
+                                        </td>
+                                        <td class="col-basic">
+                                            <i class="<%= getDeviceIcon(log.device) %> device-icon me-1"></i>
+                                            <small><%= log.device %></small>
+                                        </td>
+                                        <td class="col-basic">
+                                            <% if (log.language) { %>
+                                                <span class="badge bg-info" style="font-size: 0.7rem;"><%= log.language.split(',')[0] %></span>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-basic table-cell-wide">
+                                            <% if (log.referrer && log.referrer !== '') { %>
+                                                <small class="text-muted"><%= log.referrer %></small>
+                                            <% } else { %>
+                                                <span class="text-muted" style="font-size: 0.8rem;">直接</span>
+                                            <% } %>
+                                        </td>
+                                        
+                                        <!-- 技術情報 -->
+                                        <td class="col-technical d-none">
+                                            <% if (log.screen_width && log.screen_height) { %>
+                                                <small><%= log.screen_width %>×<%= log.screen_height %></small>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-technical d-none">
+                                            <% if (log.viewport_width && log.viewport_height) { %>
+                                                <small><%= log.viewport_width %>×<%= log.viewport_height %></small>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-technical d-none">
+                                            <% if (log.pixel_ratio) { %>
+                                                <span class="badge bg-info" style="font-size: 0.7rem;"><%= log.pixel_ratio %></span>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-technical d-none">
+                                            <% if (log.timezone && log.timezone !== 'Unknown') { %>
+                                                <span class="badge bg-warning" style="font-size: 0.7rem;"><%= log.timezone %></span>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-technical d-none">
+                                            <% if (log.connection_type) { %>
+                                                <span class="badge bg-primary" style="font-size: 0.7rem;"><%= log.connection_type %></span>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-technical d-none">
+                                            <% if (log.cookie_enabled !== null) { %>
+                                                <i class="fas fa-<%= log.cookie_enabled ? 'check text-success' : 'times text-danger' %>"></i>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-technical d-none table-cell-wide">
+                                            <% if (log.user_agent) { %>
+                                                <small class="text-muted"><%= log.user_agent %></small>
+                                            <% } %>
+                                        </td>
+                                        
+                                        <!-- ハードウェア情報 -->
+                                        <td class="col-hardware d-none">
+                                            <% if (log.cpu_cores) { %>
+                                                <span class="badge bg-secondary" style="font-size: 0.7rem;"><%= log.cpu_cores %></span>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-hardware d-none">
+                                            <% if (log.memory_gb) { %>
+                                                <span class="badge bg-secondary" style="font-size: 0.7rem;"><%= log.memory_gb %>GB</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-hardware d-none">
+                                            <% if (log.touch_support !== null) { %>
+                                                <i class="fas fa-<%= log.touch_support ? 'hand-pointer text-success' : 'mouse text-secondary' %>"></i>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-hardware d-none">
+                                            <% if (log.webrtc_support !== null) { %>
+                                                <i class="fas fa-<%= log.webrtc_support ? 'video text-success' : 'video-slash text-danger' %>"></i>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-hardware d-none">
+                                            <% if (log.webgl_support !== null) { %>
+                                                <i class="fas fa-<%= log.webgl_support ? 'cube text-success' : 'cube text-danger' %>"></i>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-hardware d-none">
+                                            <% if (log.local_storage_enabled !== null) { %>
+                                                <i class="fas fa-<%= log.local_storage_enabled ? 'database text-success' : 'database text-danger' %>"></i>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-hardware d-none">
+                                            <% if (log.session_storage_enabled !== null) { %>
+                                                <i class="fas fa-<%= log.session_storage_enabled ? 'hdd text-success' : 'hdd text-danger' %>"></i>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-hardware d-none">
+                                            <% if (log.indexed_db_enabled !== null) { %>
+                                                <i class="fas fa-<%= log.indexed_db_enabled ? 'server text-success' : 'server text-danger' %>"></i>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-hardware d-none">
+                                            <% if (log.media_devices_count) { %>
+                                                <span class="badge bg-info" style="font-size: 0.7rem;"><%= log.media_devices_count %></span>
+                                            <% } %>
+                                        </td>
+                                        
+                                        <!-- フィンガープリント -->
+                                        <td class="col-fingerprint d-none fingerprint-cell">
+                                            <% if (log.canvas_fingerprint) { %>
+                                                <%= log.canvas_fingerprint %>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-fingerprint d-none fingerprint-cell">
+                                            <% if (log.audio_fingerprint) { %>
+                                                <%= log.audio_fingerprint %>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-fingerprint d-none table-cell-wide">
+                                            <% if (log.plugins_list && log.plugins_list !== 'None' && log.plugins_list !== '') { %>
+                                                <small><%= log.plugins_list %></small>
+                                            <% } else { %>
+                                                <span class="text-muted">なし</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-fingerprint d-none table-cell-wide">
+                                            <% if (log.fonts_list && log.fonts_list !== 'None detected' && log.fonts_list !== 'Detection failed' && log.fonts_list !== '') { %>
+                                                <small><%= log.fonts_list %></small>
+                                            <% } else { %>
+                                                <span class="text-muted">検出失敗</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-fingerprint d-none">
+                                            <% if (log.webgl_vendor) { %>
+                                                <small><%= log.webgl_vendor %></small>
+                                            <% } %>
+                                        </td>
+                                        <td class="col-fingerprint d-none table-cell-wide">
+                                            <% if (log.webgl_renderer) { %>
+                                                <small><%= log.webgl_renderer %></small>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% } }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% if (logs.length > 50) { %>
+                        <div class="card-footer text-center">
+                            <small class="text-muted">※ 詳細表示のため最新の50件のみ表示しています（全<%= logs.length %>件）</small>
+                        </div>
+                    <% } %>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">まだアクセスログがありません</h5>
+                        <p class="text-muted">短縮URLがアクセスされるとここに表示されます</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- フッター -->
+        <div class="text-center mt-4 mb-4">
+            <a href="/" class="btn btn-outline-primary">
+                <i class="fas fa-home me-2"></i>
+                ホームに戻る
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // カラム表示切り替え機能
+        function toggleColumns(type) {
+            const table = document.getElementById('logsTable');
+            if (!table) return;
+
+            // 全てのカラムを非表示にする
+            const allColumns = table.querySelectorAll('th, td');
+            allColumns.forEach(col => {
+                if (col.classList.contains('col-basic') || 
+                    col.classList.contains('col-technical') || 
+                    col.classList.contains('col-hardware') || 
+                    col.classList.contains('col-fingerprint')) {
+                    col.classList.add('d-none');
+                }
+            });
+
+            // 選択されたタイプのカラムを表示
+            let columnsToShow = [];
+            switch(type) {
+                case 'basic':
+                    columnsToShow = ['col-basic'];
+                    break;
+                case 'technical':
+                    columnsToShow = ['col-basic', 'col-technical'];
+                    break;
+                case 'hardware':
+                    columnsToShow = ['col-basic', 'col-hardware'];
+                    break;
+                case 'fingerprint':
+                    columnsToShow = ['col-basic', 'col-fingerprint'];
+                    break;
+                case 'all':
+                    columnsToShow = ['col-basic', 'col-technical', 'col-hardware', 'col-fingerprint'];
+                    break;
+            }
+
+            columnsToShow.forEach(className => {
+                const columns = table.querySelectorAll('.' + className);
+                columns.forEach(col => col.classList.remove('d-none'));
+            });
+
+            // 「全て表示」の時だけ特定のセルのword-breakスタイルを調整
+            const cellsToAdjust = table.querySelectorAll('td.table-cell-wide, td.fingerprint-cell');
+            if (type === 'all') {
+                cellsToAdjust.forEach(cell => {
+                    cell.style.wordBreak = 'normal'; // 単語の区切りで改行するように変更
+                    cell.style.whiteSpace = 'normal'; // テキストを適切に折り返すようにする
+                });
+            } else {
+                // 他の表示タイプの場合は、インラインスタイルを削除してCSSの指定に戻す
+                cellsToAdjust.forEach(cell => {
+                    cell.style.wordBreak = ''; 
+                    cell.style.whiteSpace = ''; 
+                });
+            }
+
+            // ボタンのアクティブ状態を更新
+            document.querySelectorAll('.card-header .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // アイコン生成関数
+        function getBrowserIcon(browser) {
+            switch(browser.toLowerCase()) {
+                case 'chrome': return 'fab fa-chrome';
+                case 'firefox': return 'fab fa-firefox';
+                case 'safari': return 'fab fa-safari';
+                case 'edge': return 'fab fa-edge';
+                default: return 'fas fa-globe';
+            }
+        }
+
+        function getOSIcon(os) {
+            switch(os.toLowerCase()) {
+                case 'windows': return 'fab fa-windows';
+                case 'macos': case 'mac os': return 'fab fa-apple';
+                case 'linux': return 'fab fa-linux';
+                case 'android': return 'fab fa-android';
+                case 'ios': return 'fab fa-apple';
+                default: return 'fas fa-desktop';
+            }
+        }
+
+        function getDeviceIcon(device) {
+            switch(device.toLowerCase()) {
+                case 'mobile': return 'fas fa-mobile-alt';
+                case 'tablet': return 'fas fa-tablet-alt';
+                case 'desktop': return 'fas fa-desktop';
+                default: return 'fas fa-question';
+            }
+        }
+    </script>
+
+    <%
+        // テンプレート内でアイコン関数を定義
+        function getBrowserIcon(browser) {
+            switch(browser.toLowerCase()) {
+                case 'chrome': return 'fab fa-chrome';
+                case 'firefox': return 'fab fa-firefox';
+                case 'safari': return 'fab fa-safari';
+                case 'edge': return 'fab fa-edge';
+                default: return 'fas fa-globe';
+            }
+        }
+
+        function getOSIcon(os) {
+            switch(os.toLowerCase()) {
+                case 'windows': return 'fab fa-windows';
+                case 'macos': case 'mac os': return 'fab fa-apple';
+                case 'linux': return 'fab fa-linux';
+                case 'android': return 'fab fa-android';
+                case 'ios': return 'fab fa-apple';
+                default: return 'fas fa-desktop';
+            }
+        }
+
+        function getDeviceIcon(device) {
+            switch(device.toLowerCase()) {
+                case 'mobile': return 'fas fa-mobile-alt';
+                case 'tablet': return 'fas fa-tablet-alt';
+                case 'desktop': return 'fas fa-desktop';
+                default: return 'fas fa-question';
+            }
+        }
+    %>
+</body>
+</html>
